@@ -1,0 +1,4 @@
+(library
+ (name day1)
+ (modules part1)
+ (libraries core base))

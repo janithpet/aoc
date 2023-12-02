@@ -1,0 +1,6 @@
+(executable
+ (public_name day1)
+ (name main)
+ (libraries day1 core)
+ (preprocess
+  (pps ppx_jane)))

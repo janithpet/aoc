@@ -1,11 +1,15 @@
 open Core
 
-type parseSet = End of string | Node of (char, parseSet) Base.Hashtbl.t
+type parseSet =
+  | End of string
+  | Continue of string
+  | Node of (char, parseSet) Base.Hashtbl.t
 
 let new_parseset_node () = Node (Base.Hashtbl.create (module Char))
 
 let add_parseset_node k = function
   | End _ -> ()
+  | Continue _ -> ()
   | Node ht -> (
       match Base.Hashtbl.find ht k with
       | None -> Base.Hashtbl.add_exn ht ~key:k ~data:(new_parseset_node ())
@@ -13,10 +17,17 @@ let add_parseset_node k = function
 
 let add_parseset_end full_string k = function
   | End _ -> failwith "Don't call with End"
+  | Continue _ -> failwith "Don't call with Continue"
   | Node ht -> Base.Hashtbl.add_exn ht ~key:k ~data:(End full_string)
+
+let add_parseset_continue full_string k = function
+  | End _ -> failwith "Don't call with End"
+  | Continue _ -> failwith "Don't call with Continue"
+  | Node ht -> Base.Hashtbl.add_exn ht ~key:k ~data:(Continue full_string)
 
 let get_parseset k = function
   | End _ -> failwith "Don't call with End"
+  | Continue _ -> failwith "Don't call with Continue"
   | Node ps -> Base.Hashtbl.find ps k
 
 let explode_string s = List.init (String.length s) ~f:(String.get s)
@@ -25,6 +36,7 @@ let parseset_string_of ps =
   let rec _recursion ps acc =
     match ps with
     | End s -> acc ^ s
+    | Continue s -> acc ^ s
     | Node ps ->
         Base.Hashtbl.fold ps ~init:acc ~f:(fun ~key ~data acc ->
             Char.to_string key ^ "->" ^ _recursion data acc)
@@ -35,7 +47,7 @@ let generateParseSet s =
   let ps = new_parseset_node () in
   let rec _recursion ps full_string = function
     | [] -> ()
-    | [ s ] -> add_parseset_end full_string s ps
+    | [ s ] -> add_parseset_continue full_string s ps
     | s :: rest -> (
         add_parseset_node s ps;
         match get_parseset s ps with
@@ -44,7 +56,9 @@ let generateParseSet s =
   in
   List.iter s ~f:(fun s ->
       let exploded = explode_string s in
-      _recursion ps s exploded);
+      if List.length exploded = 1 then
+        add_parseset_end s (Base.List.hd_exn exploded) ps
+      else _recursion ps s exploded);
   ps
 
 type resetTo = None | Some of char list
@@ -63,11 +77,12 @@ let parse ps s =
             | Some rt -> _parse ps acc None rt)
         | Some pss -> (
             match pss with
-            | End s -> _parse ps (s :: acc) None rest
-            | pss -> (
+            | End ss -> _parse ps (ss :: acc) None rest
+            | Continue ss -> _parse ps (ss :: acc) None (s :: rest)
+            | Node pss -> (
                 match _reset_to with
-                | None -> _parse pss acc (Some rest) rest
-                | rt -> _parse pss acc rt rest)))
+                | None -> _parse (Node pss) acc (Some rest) rest
+                | rt -> _parse (Node pss) acc rt rest)))
   in
 
   _parse ps acc reset_to exploded_string

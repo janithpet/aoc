@@ -96,13 +96,6 @@ let rec check_if_gear_and_sum acc matrix = function
   | [] -> acc
   | Star coord :: stars ->
       let check_coordinates = get_star_exclusive_coords coord in
-      (* let rec print_coords = function
-           | [] -> print_endline ""
-           | coord :: coords ->
-               print_endline (string_of_coordinate coord);
-               print_coords coords
-         in *)
-      (* print_coords check_coordinates; *)
       let gear_ratio, count =
         Base.List.fold check_coordinates ~init:(1, 0) ~f:(fun acc coord ->
             let gear_ratio, count = acc in
@@ -137,7 +130,4 @@ let solve f =
         close_accumulator_stack accumulator (new_coordinate x (y_size - 1)) matrix)
   in
   let sum = check_if_gear_and_sum 0 matrix accumulator.stars in
-  (* print_matrix matrix; *)
-  (* print_endline "........."; *)
-  (* print_stars accumulator.stars; *)
   string_of_int sum
